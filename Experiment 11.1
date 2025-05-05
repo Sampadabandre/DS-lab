@@ -1,0 +1,155 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <time.h>
+
+#define MAX_TITLE_LEN 100
+
+// Node structure
+typedef struct Node {
+    char title[MAX_TITLE_LEN];
+    char timestamp[30];
+    struct Node* prev;
+    struct Node* next;
+} Node;
+
+Node* current = NULL;
+
+// Get current time as string
+void getCurrentTime(char* buffer, int len) {
+    time_t now = time(NULL);
+    struct tm* t = localtime(&now);
+    strftime(buffer, len, "%Y-%m-%d %H:%M:%S", t);
+}
+
+// Visit new webpage
+void visitPage(const char* title) {
+    Node* newNode = (Node*)malloc(sizeof(Node));
+    strncpy(newNode->title, title, MAX_TITLE_LEN);
+    getCurrentTime(newNode->timestamp, sizeof(newNode->timestamp));
+    newNode->next = NULL;
+
+    if (current != NULL) {
+        // Remove all forward history
+        Node* temp = current->next;
+        while (temp) {
+            Node* toDelete = temp;
+            temp = temp->next;
+            free(toDelete);
+        }
+        current->next = newNode;
+        newNode->prev = current;
+    } else {
+        newNode->prev = NULL;
+    }
+
+    current = newNode;
+    printf("Visited: %s at %s\n", current->title, current->timestamp);
+}
+
+// Go back
+void goBack() {
+    if (current && current->prev) {
+        current = current->prev;
+        printf("Went back to: %s at %s\n", current->title, current->timestamp);
+    } else {
+        printf("No previous page.\n");
+    }
+}
+
+// Go forward
+void goForward() {
+    if (current && current->next) {
+        current = current->next;
+        printf("Went forward to: %s at %s\n", current->title, current->timestamp);
+    } else {
+        printf("No next page.\n");
+    }
+}
+
+// Print current page
+void printCurrentPage() {
+    if (current) {
+        printf("Current Page: %s at %s\n", current->title, current->timestamp);
+    } else {
+        printf("No page visited yet.\n");
+    }
+}
+
+// Show full history
+void showHistory() {
+    Node* temp = current;
+    while (temp && temp->prev)
+        temp = temp->prev;
+
+    printf("\nFull History:\n");
+    while (temp) {
+        printf("-> %s [%s]\n", temp->title, temp->timestamp);
+        temp = temp->next;
+    }
+    printf("\n");
+}
+
+// Free all nodes
+void freeHistory() {
+    while (current && current->prev)
+        current = current->prev;
+
+    Node* temp;
+    while (current) {
+        temp = current;
+        current = current->next;
+        free(temp);
+    }
+}
+
+// Menu
+void showMenu() {
+    printf("\nBrowser History Tracker\n");
+    printf("1. Visit Page\n");
+    printf("2. Go Back\n");
+    printf("3. Go Forward\n");
+    printf("4. Show Current Page\n");
+    printf("5. Show Full History\n");
+    printf("6. Exit\n");
+}
+
+int main() {
+    int choice;
+    char title[MAX_TITLE_LEN];
+
+    while (1) {
+        showMenu();
+        printf("Enter choice: ");
+        scanf("%d", &choice);
+        getchar(); // consume newline
+
+        switch (choice) {
+            case 1:
+                printf("Enter page title: ");
+                fgets(title, MAX_TITLE_LEN, stdin);
+                title[strcspn(title, "\n")] = '\0';  // remove newline
+                visitPage(title);
+                break;
+            case 2:
+                goBack();
+                break;
+            case 3:
+                goForward();
+                break;
+            case 4:
+                printCurrentPage();
+                break;
+            case 5:
+                showHistory();
+                break;
+            case 6:
+                freeHistory();
+                return 0;
+            default:
+                printf("Invalid choice.\n");
+        }
+    }
+
+    return 0;
+}
